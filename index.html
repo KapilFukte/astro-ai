@@ -1,0 +1,1000 @@
+<title>Astro AI</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Mukta:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: 1) birth form, 2) Tara voice assistant (the main feature: orb + controls beside the conversation),
+   3) chart, next-7-days and forecast. One light "morning sky" theme on purpose: always light. */
+:root {
+  color-scheme: light;
+  --bg: #edf3f9;
+  --bg-2: #f8e9ef;
+  --surface: #ffffff;
+  --ink: #1b2333;
+  --muted: #5b6577;
+  --line: #d9e1eb;
+  --rose: #c8325f;
+  --rose-soft: #fde3ec;
+  --teal: #0f7470;
+  --teal-soft: #dcf2ef;
+  --gold: #b07415;
+  --gold-soft: #fbefd9;
+  --good: #1b7a45;
+  --good-soft: #e1f3e8;
+  --care: #b4441c;
+  --care-soft: #fde7dd;
+  --font-display: "DM Serif Display", Georgia, "Noto Serif Devanagari", serif;
+  --font-body: "Mukta", "Segoe UI", "Noto Sans Devanagari", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; color: var(--ink); font: 17px/1.55 var(--font-body);
+  background: linear-gradient(180deg, var(--bg-2) 0, var(--bg) 340px, var(--bg) 100%);
+  background-color: var(--bg);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 48px;
+}
+.wrap { max-width: 1120px; margin: 0 auto; display: grid; gap: 22px; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 400; margin: 0; text-wrap: balance; line-height: 1.12; }
+h1 { font-size: clamp(2.2rem, 6vw, 3rem); }
+h1 span { color: var(--rose); }
+h2 { font-size: 1.55rem; }
+h3 { font-size: 1.2rem; }
+p { margin: 0; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--rose); outline-offset: 2px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 20px; min-width: 0; box-shadow: 0 1px 2px rgba(27, 35, 51, 0.04); }
+.lbl { font-size: 0.78rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+
+header p { color: var(--muted); max-width: 62ch; margin-top: 4px; }
+
+/* 1. birth form */
+#birthForm { display: grid; grid-template-columns: 1.1fr 1fr 0.9fr 1.4fr auto; gap: 12px 14px; align-items: end; }
+@media (max-width: 900px) { #birthForm { grid-template-columns: 1fr 1fr; } #birthForm .wide { grid-column: 1 / -1; } }
+@media (max-width: 460px) { #birthForm { grid-template-columns: 1fr; } }
+.field { display: grid; gap: 4px; min-width: 0; }
+input[type=text], input[type=date], input[type=time], select {
+  width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: #f6f9fc; min-height: 46px;
+}
+input:disabled { opacity: 0.5; }
+.check { display: flex; gap: 8px; align-items: center; font-size: 0.93rem; color: var(--muted); }
+.btn { border: 0; border-radius: 12px; padding: 10px 20px; min-height: 46px; font-weight: 600; cursor: pointer; }
+.btn.primary { background: var(--rose); color: #fff; }
+.btn.primary:hover { filter: brightness(1.07); }
+.btn.ghost { background: var(--rose-soft); color: var(--rose); }
+.btn:disabled { opacity: 0.45; cursor: default; }
+#formMsg { grid-column: 1 / -1; color: var(--care); font-size: 0.93rem; min-height: 1.2em; }
+
+/* 2. Tara: the voice assistant */
+#assistant { display: grid; grid-template-columns: minmax(250px, 0.72fr) minmax(0, 1.5fr); gap: 0; padding: 0; overflow: hidden; scroll-margin-top: 12px; }
+@media (max-width: 860px) { #assistant { grid-template-columns: 1fr; } }
+.tara { background: linear-gradient(160deg, #fff4f7 0%, #eef6fb 100%); border-right: 1px solid var(--line); padding: 24px 20px; display: grid; gap: 16px; align-content: start; justify-items: center; text-align: center; }
+@media (max-width: 860px) { .tara { border-right: 0; border-bottom: 1px solid var(--line); padding: 18px 16px; } }
+.tara h2 span { color: var(--rose); }
+.tara .sub { color: var(--muted); font-size: 0.93rem; margin-top: -10px; }
+.orb { position: relative; width: 150px; height: 150px; display: grid; place-items: center; }
+@media (max-width: 860px) { .orb { width: 110px; height: 110px; } }
+.orb .core { width: 72%; height: 72%; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ffd9e5 0%, #e5627f 38%, #8c5ad6 70%, #2d8f8a 100%); box-shadow: 0 10px 30px rgba(200, 50, 95, 0.28); transition: transform 0.3s; }
+.orb .ring { position: absolute; inset: 14%; border-radius: 50%; border: 2px solid rgba(200, 50, 95, 0.35); opacity: 0; }
+.orb[data-state="speaking"] .core { animation: breathe 1.6s ease-in-out infinite; }
+.orb[data-state="speaking"] .ring { animation: ripple 2.2s ease-out infinite; }
+.orb[data-state="speaking"] .ring:nth-child(2) { animation-delay: 0.7s; }
+.orb[data-state="speaking"] .ring:nth-child(3) { animation-delay: 1.4s; }
+.orb[data-state="thinking"] .core { animation: spin 3s linear infinite; }
+.orb[data-state="listening"] .ring { animation: ripple 1.2s ease-out infinite; border-color: rgba(15, 116, 112, 0.5); }
+.orb[data-state="paused"] .core { filter: saturate(0.35); }
+@keyframes breathe { 50% { transform: scale(1.07); } }
+@keyframes ripple { 0% { transform: scale(0.9); opacity: 0.8; } 100% { transform: scale(1.45); opacity: 0; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+#voiceState { font-weight: 600; color: var(--rose); }
+#voiceControls { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.vbtn { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 8px 16px; min-height: 44px; font-weight: 600; cursor: pointer; }
+.vbtn svg { width: 14px; height: 14px; fill: currentColor; }
+.vbtn:disabled { opacity: 0.4; cursor: default; }
+.vbtn.stop:not(:disabled) { color: #fff; background: var(--care); border-color: var(--care); }
+#voiceControls.novoice .vbtn:not(.stop) { display: none; }
+.vset { width: 100%; margin: 0; border: 0; padding: 0; text-align: left; }
+.vset summary { text-align: center; font-size: 0.92rem; }
+.settings { display: grid; gap: 10px; width: 100%; margin-top: 10px; text-align: left; font-size: 0.92rem; color: var(--muted); }
+.settings label { display: grid; gap: 3px; }
+.settings label.check { display: flex; gap: 8px; }
+.settings .row { display: flex; align-items: center; gap: 10px; }
+.settings input[type=range] { flex: 1; accent-color: var(--rose); }
+.settings select { min-height: 40px; padding: 6px 10px; font-size: 0.92rem; }
+#voiceName { font-size: 0.82rem; color: var(--muted); }
+#voiceTip { font-size: 0.82rem; color: var(--gold); background: var(--gold-soft); border-radius: 10px; padding: 6px 10px; text-align: left; }
+
+.convo { display: grid; grid-template-rows: 1fr auto auto auto; gap: 12px; padding: 20px; min-width: 0; height: min(78vh, 680px); }
+@media (max-width: 860px) { .convo { height: auto; padding: 16px; } }
+#chat { overflow-y: auto; display: flex; flex-direction: column; gap: 10px; min-height: 260px; padding-right: 4px; }
+@media (max-width: 860px) { #chat { max-height: 60vh; } }
+.msg { max-width: 92%; padding: 11px 15px; border-radius: 16px; overflow-wrap: anywhere; }
+.msg.user { align-self: flex-end; background: var(--rose); color: #fff; border-bottom-right-radius: 5px; }
+.msg.ai { align-self: flex-start; background: #f4f7fb; border: 1px solid var(--line); border-bottom-left-radius: 5px; }
+.msg.sys { align-self: center; background: none; color: var(--muted); font-size: 0.88rem; text-align: center; padding: 2px 8px; }
+.msg p + p, .msg ul + p, .msg p + ul, .msg h4 + p { margin-top: 8px; }
+.msg h4 { margin: 10px 0 4px; font-size: 1rem; color: var(--teal); }
+.msg h4:first-child { margin-top: 0; }
+.msg ul { margin: 6px 0 0; padding-left: 20px; }
+.msg .note { color: var(--care); font-size: 0.85rem; margin-top: 8px; }
+.dots { display: inline-flex; gap: 5px; padding: 4px 2px; }
+.dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--rose); animation: blink 1.2s infinite; }
+.dots i:nth-child(2) { animation-delay: 0.2s; } .dots i:nth-child(3) { animation-delay: 0.4s; }
+@keyframes blink { 0%, 80%, 100% { opacity: 0.25; } 40% { opacity: 1; } }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { border: 1px solid var(--line); background: var(--surface); color: var(--teal); border-radius: 999px; padding: 6px 13px; font-size: 0.92rem; font-weight: 600; cursor: pointer; min-height: 38px; }
+.chip.lead { background: var(--teal-soft); border-color: transparent; }
+.chip:disabled { opacity: 0.45; cursor: default; }
+#chatForm { display: flex; gap: 8px; }
+#chatForm input { flex: 1; min-width: 0; }
+.icon-btn { width: 46px; min-width: 46px; height: 46px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--teal); cursor: pointer; display: grid; place-items: center; }
+.icon-btn svg { width: 18px; height: 18px; fill: currentColor; }
+.icon-btn.live { background: var(--teal); color: #fff; border-color: var(--teal); }
+#aiOff { font-size: 0.88rem; color: var(--care); }
+.example-note { background: var(--gold-soft); color: var(--gold); border-radius: 10px; padding: 6px 12px; font-size: 0.9rem; font-weight: 600; }
+
+/* 3. chart and forecast */
+.lower { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px; align-items: start; }
+@media (max-width: 860px) { .lower { grid-template-columns: 1fr; } }
+.chart-head { display: grid; gap: 2px; margin: 10px 0 14px; }
+#chartFor { font-weight: 600; }
+#chartMeta, #chartKind { color: var(--muted); font-size: 0.85rem; }
+.kundli-wrap { display: grid; place-items: center; gap: 4px; margin-bottom: 16px; }
+#kundli { width: 100%; max-width: 360px; height: auto; }
+.k-frame { fill: #fdf3f6; stroke: var(--rose); stroke-width: 2; }
+.k-line { fill: none; stroke: var(--rose); stroke-width: 1.2; opacity: 0.75; }
+.k-sign { fill: var(--muted); font: 600 10px var(--font-body); }
+.k-planet { fill: var(--ink); font: 600 12.5px var(--font-body); }
+.k-asc { fill: var(--teal); font: 700 10px var(--font-body); letter-spacing: 0.06em; text-transform: uppercase; }
+#facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0; }
+@media (max-width: 460px) { #facts { grid-template-columns: 1fr; } }
+.fact { background: #f4f7fb; border-radius: 12px; padding: 10px 12px; min-width: 0; }
+.fact dt { font-size: 0.74rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
+.fact dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+.fact dd span { display: block; font-weight: 400; color: var(--muted); font-size: 0.86rem; }
+details { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 10px; }
+summary { cursor: pointer; font-weight: 600; color: var(--teal); }
+.tbl { overflow-x: auto; margin-top: 8px; }
+table { border-collapse: collapse; width: 100%; font-size: 0.92rem; }
+th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+td.num { font-variant-numeric: tabular-nums; }
+.tag { display: inline-block; font-size: 0.75rem; padding: 0 6px; border-radius: 6px; background: var(--rose-soft); color: var(--rose); }
+#dashaList { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; font-size: 0.93rem; }
+#dashaList li { display: flex; justify-content: space-between; gap: 12px; padding: 4px 8px; border-radius: 8px; }
+#dashaList li span { color: var(--muted); font-variant-numeric: tabular-nums; }
+#dashaList li.now { background: var(--rose-soft); }
+
+.forecast { display: grid; gap: 18px; }
+#days { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+@media (max-width: 560px) { #days { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.day { border-radius: 12px; padding: 8px 6px; text-align: center; display: grid; gap: 1px; font-size: 0.8rem; }
+.day.good { background: var(--good-soft); } .day.good .dword { color: var(--good); }
+.day.mixed { background: #f1f4f8; } .day.mixed .dword { color: var(--muted); }
+.day.careful { background: var(--care-soft); } .day.careful .dword { color: var(--care); }
+.dname { font-weight: 700; }
+.ddate { color: var(--muted); }
+.dword { font-weight: 700; }
+.dmoon { color: var(--muted); font-size: 0.72rem; line-height: 1.25; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 0.82rem; color: var(--muted); }
+#changes { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+#changes li { display: grid; grid-template-columns: 7ch 1fr; gap: 10px; font-size: 0.95rem; }
+#changes .cdate { color: var(--rose); font-weight: 700; font-variant-numeric: tabular-nums; }
+#changes em { color: var(--muted); font-style: normal; }
+footer { color: var(--muted); font-size: 0.85rem; text-align: center; }
+@media (prefers-reduced-motion: reduce) { .orb .core, .orb .ring, .dots i { animation: none !important; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Astro <span>AI</span></h1>
+    <p>Tell Tara when and where you were born. She'll read your Vedic chart aloud and tell you what the coming days, months and years hold.</p>
+  </header>
+
+  <!-- 1. Birth details -->
+  <section class="card" aria-label="Birth details">
+    <form id="birthForm" novalidate>
+      <div class="field"><label class="lbl" for="name">Name</label><input id="name" type="text" autocomplete="name" placeholder="e.g. Kapil"></div>
+      <div class="field"><label class="lbl" for="dob">Date of birth</label><input id="dob" type="date" min="1900-01-01" max="2100-12-31"></div>
+      <div class="field"><label class="lbl" for="tob">Exact time of birth</label><input id="tob" type="time"></div>
+      <div class="field"><label class="lbl" for="place">Place of birth</label><input id="place" type="text" list="cityList" placeholder="City, e.g. Jaipur" autocomplete="off"><datalist id="cityList"></datalist></div>
+      <button class="btn primary" id="make" type="submit">Talk to Tara</button>
+      <label class="check wide"><input id="noTime" type="checkbox"> I don't know my birth time</label>
+      <p id="formMsg" role="status"></p>
+    </form>
+  </section>
+
+  <!-- 2. Tara: the AI voice assistant -->
+  <section class="card" id="assistant" aria-label="Tara, your AI astrologer">
+    <div class="tara">
+      <div class="orb" id="orb" data-state="idle" aria-hidden="true"><span class="ring"></span><span class="ring"></span><span class="ring"></span><span class="core"></span></div>
+      <h2>Tara <span>·</span> your astrologer</h2>
+      <p class="sub" id="voiceState" role="status">Ready to talk</p>
+      <div id="voiceControls">
+        <button class="vbtn" id="pause" type="button" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="2" width="3.5" height="12" rx="1"/><rect x="9.5" y="2" width="3.5" height="12" rx="1"/></svg>Pause</button>
+        <button class="vbtn" id="resume" type="button" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9.5-5.5z"/></svg>Resume</button>
+        <button class="vbtn stop" id="stop" type="button" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="3" width="10" height="10" rx="1.5"/></svg>Stop</button>
+      </div>
+      <details class="vset" id="vset">
+      <summary>Voice settings</summary>
+      <div class="settings">
+        <label class="check"><input id="autoSpeak" type="checkbox" checked> Speak answers aloud</label>
+        <label>Language <select id="lang"><option value="en">English</option><option value="hinglish">Hinglish</option><option value="hi">हिन्दी</option></select></label>
+        <label>Speed <span class="row"><input id="rate" type="range" min="0.75" max="1.3" step="0.05" value="1"> <span id="rateVal">1×</span></span></label>
+        <label>Voice <select id="voice"></select></label>
+        <span id="voiceName"></span>
+        <p id="voiceTip" hidden>For the most natural voice, open this page in Microsoft Edge (voices Neerja and Swara) or in Chrome.</p>
+      </div>
+      </details>
+    </div>
+    <div class="convo">
+      <div id="chat" aria-live="polite"></div>
+      <div class="chips" aria-label="Quick questions">
+        <button class="chip lead" type="button" data-q="What do my next 7 days look like? Tell me day by day which days are good and which need care.">Next 7 days</button>
+        <button class="chip lead" type="button" data-q="What does this month and the next three months hold for me?">Coming months</button>
+        <button class="chip lead" type="button" data-q="What does the next one year hold for me, month by month?">Next 12 months</button>
+        <button class="chip lead" type="button" data-q="What is my future over the next five years, based on my dasha periods?">Next 5 years</button>
+        <button class="chip" type="button" data-q="What does my future look like for career and work, and when are the best times?">Career</button>
+        <button class="chip" type="button" data-q="What does my chart say about love and marriage, and when are good times?">Marriage</button>
+        <button class="chip" type="button" data-q="What does my future look like for money and finances?">Money</button>
+        <button class="chip" type="button" data-q="What does my chart say about health tendencies, and what should I take care of?">Health</button>
+        <button class="chip" type="button" data-q="Give me a full detailed reading of my chart.">Full reading</button>
+        <button class="chip" type="button" data-q="Explain that in more detail.">Explain more</button>
+      </div>
+      <form id="chatForm">
+        <button class="icon-btn" id="mic" type="button" aria-label="Speak your question" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V22h2v-3.08A7 7 0 0 0 19 12z"/></svg></button>
+        <input id="q" type="text" placeholder="Ask Tara about your future…" aria-label="Your question">
+        <button class="btn primary" id="send" type="submit">Ask</button>
+        <button class="btn ghost" id="stopAi" type="button" hidden>Stop</button>
+      </form>
+      <p id="aiOff" hidden>Tara's spoken readings work when this page is open on claude.ai while you're signed in. The chart and forecast below work everywhere.</p>
+    </div>
+  </section>
+
+  <!-- 3. Chart and forecast -->
+  <div class="lower">
+    <section class="card" id="chartCard" aria-labelledby="chartTitle">
+      <p class="example-note">Example chart. Enter your details above to see yours.</p>
+      <div class="chart-head">
+        <h2 id="chartTitle">Birth chart</h2>
+        <span id="chartFor"></span>
+        <span id="chartMeta"></span>
+      </div>
+      <div class="kundli-wrap">
+        <svg id="kundli" viewBox="0 0 300 300" role="img" aria-label="North Indian birth chart"></svg>
+        <span id="chartKind"></span>
+      </div>
+      <dl id="facts"></dl>
+      <details>
+        <summary>Planet positions</summary>
+        <div class="tbl"><table>
+          <thead><tr><th>Planet</th><th>Sign</th><th>Degree</th><th>House</th><th>Nakshatra</th><th></th></tr></thead>
+          <tbody id="planetRows"></tbody>
+        </table></div>
+      </details>
+      <details>
+        <summary>Vimshottari dasha timeline</summary>
+        <ul id="dashaList"></ul>
+      </details>
+    </section>
+
+    <section class="card forecast" aria-labelledby="fcTitle">
+      <h2 id="fcTitle">Your coming days</h2>
+      <div>
+        <p class="lbl">Next 7 days</p>
+        <ul id="days"></ul>
+        <p class="legend"><span>Favourable: a supportive Moon (Tarabala)</span><span>Go slow: Moon in your 8th (Chandrashtama)</span></p>
+      </div>
+      <div>
+        <p class="lbl">Planet changes in the next 90 days</p>
+        <ul id="changes"></ul>
+      </div>
+      <p class="legend">Ask Tara what these mean for you: tap “Next 7 days” or “Coming months”.</p>
+    </section>
+  </div>
+
+  <footer>Calculations: Lahiri ayanamsa, whole-sign houses, mean Rahu/Ketu, Vimshottari dasha, Tarabala. Astrology is for reflection and guidance, not a substitute for professional advice.</footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js"></script>
+<script>
+// Built-in birthplaces: [name, lat, lon, IANA time zone]. Other places are looked up with AI.
+const CITIES = [
+  ["New Delhi, India", 28.6139, 77.2090, "Asia/Kolkata"], ["Mumbai, India", 19.0760, 72.8777, "Asia/Kolkata"],
+  ["Kolkata, India", 22.5726, 88.3639, "Asia/Kolkata"], ["Chennai, India", 13.0827, 80.2707, "Asia/Kolkata"],
+  ["Bengaluru, India", 12.9716, 77.5946, "Asia/Kolkata"], ["Hyderabad, India", 17.3850, 78.4867, "Asia/Kolkata"],
+  ["Pune, India", 18.5204, 73.8567, "Asia/Kolkata"], ["Ahmedabad, India", 23.0225, 72.5714, "Asia/Kolkata"],
+  ["Jaipur, India", 26.9124, 75.7873, "Asia/Kolkata"], ["Lucknow, India", 26.8467, 80.9462, "Asia/Kolkata"],
+  ["Kanpur, India", 26.4499, 80.3319, "Asia/Kolkata"], ["Nagpur, India", 21.1458, 79.0882, "Asia/Kolkata"],
+  ["Indore, India", 22.7196, 75.8577, "Asia/Kolkata"], ["Bhopal, India", 23.2599, 77.4126, "Asia/Kolkata"],
+  ["Patna, India", 25.5941, 85.1376, "Asia/Kolkata"], ["Varanasi, India", 25.3176, 82.9739, "Asia/Kolkata"],
+  ["Prayagraj, India", 25.4358, 81.8463, "Asia/Kolkata"], ["Agra, India", 27.1767, 78.0081, "Asia/Kolkata"],
+  ["Chandigarh, India", 30.7333, 76.7794, "Asia/Kolkata"], ["Amritsar, India", 31.6340, 74.8723, "Asia/Kolkata"],
+  ["Ludhiana, India", 30.9010, 75.8573, "Asia/Kolkata"], ["Dehradun, India", 30.3165, 78.0322, "Asia/Kolkata"],
+  ["Haridwar, India", 29.9457, 78.1642, "Asia/Kolkata"], ["Shimla, India", 31.1048, 77.1734, "Asia/Kolkata"],
+  ["Srinagar, India", 34.0837, 74.7973, "Asia/Kolkata"], ["Jammu, India", 32.7266, 74.8570, "Asia/Kolkata"],
+  ["Surat, India", 21.1702, 72.8311, "Asia/Kolkata"], ["Vadodara, India", 22.3072, 73.1812, "Asia/Kolkata"],
+  ["Rajkot, India", 22.3039, 70.8022, "Asia/Kolkata"], ["Udaipur, India", 24.5854, 73.7125, "Asia/Kolkata"],
+  ["Jodhpur, India", 26.2389, 73.0243, "Asia/Kolkata"], ["Nashik, India", 19.9975, 73.7898, "Asia/Kolkata"],
+  ["Aurangabad, India", 19.8762, 75.3433, "Asia/Kolkata"], ["Goa (Panaji), India", 15.4909, 73.8278, "Asia/Kolkata"],
+  ["Mangaluru, India", 12.9141, 74.8560, "Asia/Kolkata"], ["Mysuru, India", 12.2958, 76.6394, "Asia/Kolkata"],
+  ["Kochi, India", 9.9312, 76.2673, "Asia/Kolkata"], ["Thiruvananthapuram, India", 8.5241, 76.9366, "Asia/Kolkata"],
+  ["Coimbatore, India", 11.0168, 76.9558, "Asia/Kolkata"], ["Madurai, India", 9.9252, 78.1198, "Asia/Kolkata"],
+  ["Visakhapatnam, India", 17.6868, 83.2185, "Asia/Kolkata"], ["Vijayawada, India", 16.5062, 80.6480, "Asia/Kolkata"],
+  ["Bhubaneswar, India", 20.2961, 85.8245, "Asia/Kolkata"], ["Ranchi, India", 23.3441, 85.3096, "Asia/Kolkata"],
+  ["Raipur, India", 21.2514, 81.6296, "Asia/Kolkata"], ["Guwahati, India", 26.1445, 91.7362, "Asia/Kolkata"],
+  ["Gwalior, India", 26.2183, 78.1828, "Asia/Kolkata"], ["Jabalpur, India", 23.1815, 79.9864, "Asia/Kolkata"],
+  ["Meerut, India", 28.9845, 77.7064, "Asia/Kolkata"], ["Gurugram, India", 28.4595, 77.0266, "Asia/Kolkata"],
+  ["Noida, India", 28.5355, 77.3910, "Asia/Kolkata"], ["Kathmandu, Nepal", 27.7172, 85.3240, "Asia/Kathmandu"],
+  ["Dhaka, Bangladesh", 23.8103, 90.4125, "Asia/Dhaka"], ["Karachi, Pakistan", 24.8607, 67.0011, "Asia/Karachi"],
+  ["Lahore, Pakistan", 31.5204, 74.3587, "Asia/Karachi"], ["Colombo, Sri Lanka", 6.9271, 79.8612, "Asia/Colombo"],
+  ["Dubai, UAE", 25.2048, 55.2708, "Asia/Dubai"], ["Singapore", 1.3521, 103.8198, "Asia/Singapore"],
+  ["Kuala Lumpur, Malaysia", 3.1390, 101.6869, "Asia/Kuala_Lumpur"], ["Bangkok, Thailand", 13.7563, 100.5018, "Asia/Bangkok"],
+  ["Hong Kong", 22.3193, 114.1694, "Asia/Hong_Kong"], ["Tokyo, Japan", 35.6762, 139.6503, "Asia/Tokyo"],
+  ["Sydney, Australia", -33.8688, 151.2093, "Australia/Sydney"], ["Melbourne, Australia", -37.8136, 144.9631, "Australia/Melbourne"],
+  ["Auckland, New Zealand", -36.8485, 174.7633, "Pacific/Auckland"], ["London, UK", 51.5074, -0.1278, "Europe/London"],
+  ["Paris, France", 48.8566, 2.3522, "Europe/Paris"], ["Berlin, Germany", 52.5200, 13.4050, "Europe/Berlin"],
+  ["Amsterdam, Netherlands", 52.3676, 4.9041, "Europe/Amsterdam"], ["Moscow, Russia", 55.7558, 37.6173, "Europe/Moscow"],
+  ["Johannesburg, South Africa", -26.2041, 28.0473, "Africa/Johannesburg"], ["Nairobi, Kenya", -1.2921, 36.8219, "Africa/Nairobi"],
+  ["New York, USA", 40.7128, -74.0060, "America/New_York"], ["Chicago, USA", 41.8781, -87.6298, "America/Chicago"],
+  ["Houston, USA", 29.7604, -95.3698, "America/Chicago"], ["Los Angeles, USA", 34.0522, -118.2437, "America/Los_Angeles"],
+  ["San Francisco, USA", 37.7749, -122.4194, "America/Los_Angeles"], ["Seattle, USA", 47.6062, -122.3321, "America/Los_Angeles"],
+  ["Toronto, Canada", 43.6532, -79.3832, "America/Toronto"], ["Vancouver, Canada", 49.2827, -123.1207, "America/Vancouver"],
+  ["São Paulo, Brazil", -23.5505, -46.6333, "America/Sao_Paulo"], ["Mexico City, Mexico", 19.4326, -99.1332, "America/Mexico_City"],
+];
+
+</script>
+<script>
+// Astro AI chart engine: Vedic (sidereal, Lahiri) birth chart from date, time and place.
+// Needs the astronomy-engine library as `Astronomy` (browser global or require()).
+(function (root) {
+  "use strict";
+  const A = root.Astronomy || (typeof require === "function" ? require("astronomy-engine") : null);
+
+  const SIGNS = ["Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo", "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"];
+  const RASHI = ["Mesha", "Vrishabha", "Mithuna", "Karka", "Simha", "Kanya", "Tula", "Vrishchika", "Dhanu", "Makara", "Kumbha", "Meena"];
+  const SIGN_LORD = ["Mars", "Venus", "Mercury", "Moon", "Sun", "Mercury", "Venus", "Mars", "Jupiter", "Saturn", "Saturn", "Jupiter"];
+  const NAKSHATRAS = ["Ashwini", "Bharani", "Krittika", "Rohini", "Mrigashira", "Ardra", "Punarvasu", "Pushya", "Ashlesha", "Magha", "Purva Phalguni", "Uttara Phalguni", "Hasta", "Chitra", "Swati", "Vishakha", "Anuradha", "Jyeshtha", "Mula", "Purva Ashadha", "Uttara Ashadha", "Shravana", "Dhanishta", "Shatabhisha", "Purva Bhadrapada", "Uttara Bhadrapada", "Revati"];
+  const DASHA_ORDER = ["Ketu", "Venus", "Sun", "Moon", "Mars", "Rahu", "Jupiter", "Saturn", "Mercury"];
+  const DASHA_YEARS = { Ketu: 7, Venus: 20, Sun: 6, Moon: 10, Mars: 7, Rahu: 18, Jupiter: 16, Saturn: 19, Mercury: 17 };
+  const TITHIS = ["Pratipada", "Dwitiya", "Tritiya", "Chaturthi", "Panchami", "Shashthi", "Saptami", "Ashtami", "Navami", "Dashami", "Ekadashi", "Dwadashi", "Trayodashi", "Chaturdashi"];
+  const YOGAS = ["Vishkambha", "Priti", "Ayushman", "Saubhagya", "Shobhana", "Atiganda", "Sukarma", "Dhriti", "Shula", "Ganda", "Vriddhi", "Dhruva", "Vyaghata", "Harshana", "Vajra", "Siddhi", "Vyatipata", "Variyana", "Parigha", "Shiva", "Siddha", "Sadhya", "Shubha", "Shukla", "Brahma", "Indra", "Vaidhriti"];
+  const VARA = ["Sunday (Ravivar)", "Monday (Somvar)", "Tuesday (Mangalvar)", "Wednesday (Budhvar)", "Thursday (Guruvar)", "Friday (Shukravar)", "Saturday (Shanivar)"];
+  const EXALT = { Sun: 0, Moon: 1, Mars: 9, Mercury: 5, Jupiter: 3, Venus: 11, Saturn: 6 };
+  const DEBIL = { Sun: 6, Moon: 7, Mars: 3, Mercury: 11, Jupiter: 9, Venus: 5, Saturn: 0 };
+  const OWN = { Sun: [4], Moon: [3], Mars: [0, 7], Mercury: [2, 5], Jupiter: [8, 11], Venus: [1, 6], Saturn: [9, 10] };
+  const BODIES = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn"];
+  const DAY_MS = 86400000, YEAR_DAYS = 365.25;
+
+  const norm = (x) => ((x % 360) + 360) % 360;
+  const rad = (d) => (d * Math.PI) / 180;
+  const deg = (r) => (r * 180) / Math.PI;
+
+  // UTC offset (minutes) of an IANA time zone at a given instant.
+  function tzOffsetMinutes(ms, tz) {
+    const f = new Intl.DateTimeFormat("en-US", { timeZone: tz, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    const p = {}; for (const x of f.formatToParts(new Date(ms))) p[x.type] = x.value;
+    const asUTC = Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour % 24, +p.minute, +p.second);
+    return Math.round((asUTC - Math.floor(ms / 1000) * 1000) / 60000);
+  }
+  // Local wall-clock "YYYY-MM-DD" + "HH:MM" in zone tz -> Date (UTC instant).
+  function localToUTC(dateStr, timeStr, tz) {
+    const [y, m, d] = dateStr.split("-").map(Number);
+    const [hh, mm] = (timeStr || "12:00").split(":").map(Number);
+    const guess = Date.UTC(y, m - 1, d, hh, mm || 0);
+    let off = tzOffsetMinutes(guess, tz);
+    let utc = guess - off * 60000;
+    const off2 = tzOffsetMinutes(utc, tz);
+    if (off2 !== off) utc = guess - off2 * 60000;
+    return { date: new Date(utc), offsetMinutes: tzOffsetMinutes(utc, tz) };
+  }
+
+  const centuries = (date) => (date.getTime() / DAY_MS + 2440587.5 - 2451545.0) / 36525;
+  // Lahiri (Chitrapaksha) ayanamsa; fitted to Swiss Ephemeris SIDM_LAHIRI.
+  const lahiri = (date) => { const T = centuries(date); return 23.85707 + 1.39697 * T + 0.000309 * T * T; };
+  // Mean lunar node (Rahu), Meeus 47.7.
+  const meanNode = (date) => { const T = centuries(date); return norm(125.0445479 - 1934.1362891 * T + 0.0020754 * T * T + (T * T * T) / 467441 - (T * T * T * T) / 60616000); };
+
+  function tropicalLon(body, date) {
+    const t = A.MakeTime(date);
+    if (body === "Sun") return A.SunPosition(t).elon;
+    if (body === "Moon") return A.EclipticGeoMoon(t).lon;
+    return A.Ecliptic(A.GeoVector(A.Body[body], t, true)).elon;
+  }
+  function ascendant(date, latDeg, lonDeg) {
+    const t = A.MakeTime(date);
+    const T = centuries(date);
+    const theta = rad(norm(A.SiderealTime(t) * 15 + lonDeg)); // local apparent sidereal time
+    const eps = rad(23.4392911 - 0.0130042 * T);
+    const phi = rad(latDeg);
+    return norm(deg(Math.atan2(Math.cos(theta), -(Math.sin(theta) * Math.cos(eps) + Math.tan(phi) * Math.sin(eps)))));
+  }
+
+  function siderealLon(body, date) {
+    if (body === "Rahu") return norm(meanNode(date) - lahiri(date));
+    if (body === "Ketu") return norm(meanNode(date) + 180 - lahiri(date));
+    return norm(tropicalLon(body, date) - lahiri(date));
+  }
+  function isRetro(body, date) {
+    if (body === "Sun" || body === "Moon" || body === "Rahu" || body === "Ketu") return false;
+    let d = tropicalLon(body, new Date(date.getTime() + DAY_MS / 4)) - tropicalLon(body, date);
+    if (d > 180) d -= 360; if (d < -180) d += 360;
+    return d < 0;
+  }
+
+  const signOf = (lon) => Math.floor(norm(lon) / 30);
+  const dms = (x) => { const d = Math.floor(x); const mf = (x - d) * 60; const m = Math.floor(mf); const s = Math.round((mf - m) * 60); return `${d}°${String(m).padStart(2, "0")}'${String(s === 60 ? 59 : s).padStart(2, "0")}"`; };
+  function nakshatraOf(lon) {
+    const span = 360 / 27, i = Math.floor(norm(lon) / span);
+    return { index: i, name: NAKSHATRAS[i], pada: Math.floor((norm(lon) % span) / (span / 4)) + 1, lord: DASHA_ORDER[i % 9], fractionDone: (norm(lon) % span) / span };
+  }
+  function dignity(body, sign) {
+    if (EXALT[body] === sign) return "exalted";
+    if (DEBIL[body] === sign) return "debilitated";
+    if (OWN[body] && OWN[body].includes(sign)) return "own sign";
+    return "";
+  }
+
+  function vimshottari(birth, moonLon, now) {
+    const nk = nakshatraOf(moonLon);
+    let i = DASHA_ORDER.indexOf(nk.lord);
+    const firstYears = DASHA_YEARS[nk.lord] * (1 - nk.fractionDone);
+    const list = []; let start = birth.getTime(); let years = firstYears;
+    for (let k = 0; k < 10; k++) {
+      const lord = DASHA_ORDER[(i + k) % 9];
+      const y = k === 0 ? years : DASHA_YEARS[lord];
+      const end = start + y * YEAR_DAYS * DAY_MS;
+      list.push({ lord, start: new Date(start), end: new Date(end), years: +y.toFixed(2), partial: k === 0 });
+      start = end;
+    }
+    const nowMs = now.getTime();
+    const current = list.find((d) => nowMs >= d.start.getTime() && nowMs < d.end.getTime()) || null;
+    // Antardashas (sub-periods) of every mahadasha, so we can list what is coming next.
+    const antars = [];
+    for (const md of list) {
+      const full = DASHA_YEARS[md.lord];
+      let s = md.end.getTime() - full * YEAR_DAYS * DAY_MS; // where this mahadasha would begin if complete
+      const j = DASHA_ORDER.indexOf(md.lord);
+      for (let k = 0; k < 9; k++) {
+        const lord = DASHA_ORDER[(j + k) % 9];
+        const e = s + ((full * DASHA_YEARS[lord]) / 120) * YEAR_DAYS * DAY_MS;
+        if (e > md.start.getTime()) antars.push({ maha: md.lord, lord, start: new Date(Math.max(s, md.start.getTime())), end: new Date(e) });
+        s = e;
+      }
+    }
+    const antar = antars.find((a) => nowMs >= a.start.getTime() && nowMs < a.end.getTime()) || null;
+    const upcoming = antars.filter((a) => a.end.getTime() > nowMs && a.start.getTime() < nowMs + 6 * YEAR_DAYS * DAY_MS);
+    return { list, current, antar, upcoming };
+  }
+
+  const TARA = ["Janma", "Sampat", "Vipat", "Kshema", "Pratyari", "Sadhaka", "Vadha", "Mitra", "Ati-Mitra"];
+  const GOOD_TARA = new Set(["Sampat", "Kshema", "Sadhaka", "Mitra", "Ati-Mitra"]);
+  const isoDay = (d, tz) => new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
+
+  /** Transits now, the Moon over the next 7 days, sign changes in the next 90 days. */
+  function forecast({ moonSign, moonNakIndex, lagnaSign, now, tz }) {
+    const order = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"];
+    const from = (s, ref) => ((s - ref + 12) % 12) + 1;
+    const transitsNow = order.map((b) => {
+      const s = signOf(siderealLon(b, now));
+      return { planet: b, sign: SIGNS[s], houseFromMoon: from(s, moonSign), houseFromLagna: lagnaSign === null ? null : from(s, lagnaSign), retrograde: isRetro(b, now) };
+    });
+    const next7Days = [];
+    for (let k = 0; k < 7; k++) {
+      const d = new Date(now.getTime() + k * DAY_MS);
+      const lon = siderealLon("Moon", d), s = signOf(lon), nk = nakshatraOf(lon);
+      const tara = TARA[((nk.index - moonNakIndex + 27) % 27) % 9];
+      const h = from(s, moonSign);
+      next7Days.push({ date: isoDay(d, tz), moonSign: SIGNS[s], moonNakshatra: nk.name, moonHouseFromNatalMoon: h, tara, favourable: GOOD_TARA.has(tara) && h !== 8, chandrashtama: h === 8 });
+    }
+    const signChanges = [];
+    for (const b of ["Sun", "Mars", "Mercury", "Venus", "Jupiter", "Saturn", "Rahu"]) {
+      let prev = signOf(siderealLon(b, now));
+      for (let d = 1; d <= 90; d++) {
+        const when = new Date(now.getTime() + d * DAY_MS);
+        const s = signOf(siderealLon(b, when));
+        if (s !== prev) {
+          signChanges.push({ date: isoDay(when, tz), planet: b, fromSign: SIGNS[prev], toSign: SIGNS[s], houseFromMoon: from(s, moonSign), houseFromLagna: lagnaSign === null ? null : from(s, lagnaSign) });
+          if (b === "Rahu") signChanges.push({ date: isoDay(when, tz), planet: "Ketu", fromSign: SIGNS[(prev + 6) % 12], toSign: SIGNS[(s + 6) % 12], houseFromMoon: from((s + 6) % 12, moonSign), houseFromLagna: lagnaSign === null ? null : from((s + 6) % 12, lagnaSign) });
+          prev = s;
+        }
+      }
+    }
+    signChanges.sort((a, b) => a.date.localeCompare(b.date));
+    return { transitsNow, next7Days, signChanges };
+  }
+
+  function ageOn(birthIso, todayIso) {
+    const [by, bm, bd] = birthIso.split("-").map(Number), [ty, tm, td] = todayIso.split("-").map(Number);
+    return ty - by - (tm < bm || (tm === bm && td < bd) ? 1 : 0);
+  }
+
+  /** Build the full chart. place = {lat, lon, tz, label}; timeKnown false => noon, no Lagna/houses. */
+  function buildChart({ name, date, time, timeKnown = true, place, now = new Date() }) {
+    const { date: utc, offsetMinutes } = localToUTC(date, timeKnown ? time : "12:00", place.tz);
+    const ay = lahiri(utc);
+    const planets = {};
+    for (const b of BODIES) {
+      const trop = tropicalLon(b, utc);
+      const later = tropicalLon(b, new Date(utc.getTime() + DAY_MS / 4));
+      let speed = (later - trop) * 4; if (speed > 180) speed -= 360 * 4; if (speed < -180) speed += 360 * 4;
+      planets[b] = { tropical: trop, lon: norm(trop - ay), retro: b !== "Sun" && b !== "Moon" && speed < 0 };
+    }
+    const rahuTrop = meanNode(utc);
+    planets.Rahu = { tropical: rahuTrop, lon: norm(rahuTrop - ay), retro: true };
+    planets.Ketu = { tropical: norm(rahuTrop + 180), lon: norm(rahuTrop + 180 - ay), retro: true };
+
+    let lagna = null;
+    if (timeKnown) {
+      const ascTrop = ascendant(utc, place.lat, place.lon);
+      const lon = norm(ascTrop - ay);
+      lagna = { lon, sign: signOf(lon), degree: dms(lon % 30), nakshatra: nakshatraOf(lon), tropicalSign: SIGNS[signOf(ascTrop)] };
+    }
+    const order = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"];
+    const rows = order.map((b) => {
+      const p = planets[b], s = signOf(p.lon);
+      return {
+        planet: b, sign: SIGNS[s], rashi: RASHI[s], signIndex: s, degree: dms(p.lon % 30), longitude: +p.lon.toFixed(4),
+        house: lagna ? ((s - lagna.sign + 12) % 12) + 1 : null, nakshatra: nakshatraOf(p.lon).name, pada: nakshatraOf(p.lon).pada,
+        retrograde: b === "Rahu" || b === "Ketu" ? false : p.retro, dignity: dignity(b, s),
+        westernSign: SIGNS[signOf(p.tropical)],
+      };
+    });
+    const moon = planets.Moon.lon, sun = planets.Sun.lon;
+    const moonNk = nakshatraOf(moon);
+    const elong = norm(moon - sun);
+    const tithiNum = Math.floor(elong / 12); // 0..29
+    const paksha = tithiNum < 15 ? "Shukla" : "Krishna";
+    const tIdx = tithiNum % 15;
+    const tithi = tIdx === 14 ? (paksha === "Shukla" ? "Purnima" : "Amavasya") : TITHIS[tIdx];
+    const yoga = YOGAS[Math.floor(norm(moon + sun) / (360 / 27))];
+    const localDow = new Date(utc.getTime() + offsetMinutes * 60000).getUTCDay();
+
+    let manglik = null;
+    const marsSign = signOf(planets.Mars.lon);
+    const badHouses = [1, 2, 4, 7, 8, 12];
+    const fromMoon = ((marsSign - signOf(moon) + 12) % 12) + 1;
+    const fromLagna = lagna ? ((marsSign - lagna.sign + 12) % 12) + 1 : null;
+    manglik = {
+      fromLagna: fromLagna === null ? null : badHouses.includes(fromLagna), marsHouseFromLagna: fromLagna,
+      fromMoon: badHouses.includes(fromMoon), marsHouseFromMoon: fromMoon,
+    };
+
+    // Sade Sati: transiting Saturn in the 12th, 1st or 2nd sign from the natal Moon.
+    const satNow = norm(tropicalLon("Saturn", now) - lahiri(now));
+    const rel = ((signOf(satNow) - signOf(moon) + 12) % 12) + 1;
+    const sadeSati = { saturnNowIn: SIGNS[signOf(satNow)], active: rel === 12 || rel === 1 || rel === 2, phase: rel === 12 ? "rising (first)" : rel === 1 ? "peak (second)" : rel === 2 ? "setting (third)" : "not active", dhaiya: rel === 4 || rel === 8 };
+
+    const dasha = vimshottari(utc, moon, now);
+    const [yy, mo, dd] = date.split("-").map(Number);
+    const digitSum = (n) => { while (n > 9) n = String(n).split("").reduce((a, c) => a + +c, 0); return n; };
+
+    return {
+      name: name || "", input: { date, time: timeKnown ? time : null, timeKnown, place },
+      utc: utc.toISOString(), utcOffsetMinutes: offsetMinutes, ayanamsa: { system: "Lahiri (Chitrapaksha)", value: dms(ay) },
+      lagna: lagna && { sign: SIGNS[lagna.sign], rashi: RASHI[lagna.sign], lord: SIGN_LORD[lagna.sign], degree: lagna.degree, nakshatra: lagna.nakshatra.name, pada: lagna.nakshatra.pada, signIndex: lagna.sign, westernRising: lagna.tropicalSign },
+      moonSign: { sign: SIGNS[signOf(moon)], rashi: RASHI[signOf(moon)], lord: SIGN_LORD[signOf(moon)] },
+      sunSign: { vedic: SIGNS[signOf(sun)], western: SIGNS[signOf(planets.Sun.tropical)] },
+      nakshatra: { name: moonNk.name, pada: moonNk.pada, lord: moonNk.lord },
+      planets: rows,
+      houses: lagna ? Array.from({ length: 12 }, (_, h) => { const s = (lagna.sign + h) % 12; return { house: h + 1, sign: SIGNS[s], lord: SIGN_LORD[s], occupants: rows.filter((r) => r.house === h + 1).map((r) => r.planet) }; }) : null,
+      panchang: { vara: VARA[localDow], tithi: `${paksha} ${tithi}`, paksha, nakshatra: moonNk.name, yoga },
+      dasha: {
+        system: "Vimshottari",
+        current: dasha.current && { lord: dasha.current.lord, from: dasha.current.start.toISOString().slice(0, 10), to: dasha.current.end.toISOString().slice(0, 10) },
+        antardasha: dasha.antar && { lord: dasha.antar.lord, from: dasha.antar.start.toISOString().slice(0, 10), to: dasha.antar.end.toISOString().slice(0, 10) },
+        upcomingAntardashas: dasha.upcoming.map((a) => ({ mahadasha: a.maha, antardasha: a.lord, from: a.start.toISOString().slice(0, 10), to: a.end.toISOString().slice(0, 10) })),
+        sequence: dasha.list.map((d) => ({ lord: d.lord, from: d.start.toISOString().slice(0, 10), to: d.end.toISOString().slice(0, 10) })),
+      },
+      manglik, sadeSati,
+      numerology: { mulank: digitSum(dd), bhagyank: digitSum(`${yy}${mo}${dd}`.split("").reduce((a, c) => a + +c, 0)) },
+      today: isoDay(now, place.tz),
+      age: ageOn(date, isoDay(now, place.tz)),
+      forecast: forecast({ moonSign: signOf(moon), moonNakIndex: moonNk.index, lagnaSign: lagna ? lagna.sign : null, now, tz: place.tz }),
+    };
+  }
+
+  const api = { buildChart, localToUTC, lahiri, ascendant, tropicalLon, meanNode, SIGNS, NAKSHATRAS };
+  if (typeof module !== "undefined" && module.exports) module.exports = api; else root.AstroCore = api;
+})(typeof globalThis !== "undefined" ? globalThis : this);
+
+</script>
+<script>
+// Astro AI: birth form -> Vedic chart + forecast (AstroCore) -> Tara, the AI astrologer (claude "sample") -> spoken answer.
+(function () {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const ABBR = { Sun: "Su", Moon: "Mo", Mars: "Ma", Mercury: "Me", Jupiter: "Ju", Venus: "Ve", Saturn: "Sa", Rahu: "Ra", Ketu: "Ke" };
+  const store = {
+    get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* storage unavailable */ } },
+  };
+
+  let chart = null;          // current chart object
+  let isExample = true;      // showing the sample chart
+  let turns = [];            // chat history (user/assistant) for the AI
+  let sample = null;         // claude.use("sample") result, or null
+  let aiCtl = null;          // AbortController for the running AI call
+  let thinking = false;
+
+  // ---------- birthplace ----------
+  function fillCityList() {
+    const dl = $("cityList");
+    for (const c of CITIES) { const o = document.createElement("option"); o.value = c[0]; dl.append(o); }
+  }
+  function findCity(text) {
+    const t = text.trim().toLowerCase();
+    if (!t) return null;
+    const hit = CITIES.find((c) => c[0].toLowerCase() === t) || CITIES.find((c) => c[0].toLowerCase().startsWith(t)) || CITIES.find((c) => c[0].toLowerCase().split(",")[0] === t.split(",")[0].trim());
+    return hit ? { label: hit[0], lat: hit[1], lon: hit[2], tz: hit[3] } : null;
+  }
+  const validTz = (tz) => { try { new Intl.DateTimeFormat("en", { timeZone: tz }); return true; } catch { return false; } };
+  async function lookupPlaceWithAI(text) {
+    if (!sample) return null;
+    const r = await sample.json(
+      `Give the location of this birthplace for an astrology chart: "${text.slice(0, 120)}".\n` +
+      'Reply with only JSON: {"label": "City, Region, Country", "lat": number, "lon": number, "tz": "IANA time zone like Asia/Kolkata"}. ' +
+      'Use east-positive longitude and north-positive latitude. If the place is unknown, reply {"label": null}.',
+      { modelTier: "quick", cache: { gcTime: 86400000 } });
+    if (!r || !r.label || typeof r.lat !== "number" || typeof r.lon !== "number" || !validTz(r.tz)) return null;
+    return { label: String(r.label), lat: r.lat, lon: r.lon, tz: r.tz };
+  }
+
+  // ---------- chart rendering ----------
+  const HOUSE_POS = [[150, 78], [75, 34], [32, 75], [75, 150], [32, 225], [75, 266], [150, 222], [225, 266], [268, 225], [225, 150], [268, 75], [225, 34]];
+  const SIGN_POS = [[150, 128], [75, 62], [62, 75], [128, 150], [62, 225], [75, 238], [150, 172], [225, 238], [238, 225], [172, 150], [238, 75], [225, 62]];
+  function drawChart(c) {
+    const svg = $("kundli");
+    const firstSign = c.lagna ? c.lagna.signIndex : AstroCore.SIGNS.indexOf(c.moonSign.sign);
+    const byHouse = Array.from({ length: 12 }, () => []);
+    for (const p of c.planets) {
+      const s = AstroCore.SIGNS.indexOf(p.sign);
+      byHouse[(s - firstSign + 12) % 12].push(ABBR[p.planet] + (p.retrograde ? "℞" : ""));
+    }
+    let out = `<rect class="k-frame" x="1" y="1" width="298" height="298" rx="4"/>
+      <path class="k-line" d="M1,1 L299,299 M299,1 L1,299 M150,1 L299,150 L150,299 L1,150 Z"/>`;
+    for (let h = 0; h < 12; h++) {
+      const sign = ((firstSign + h) % 12) + 1;
+      const [sx, sy] = SIGN_POS[h];
+      out += `<text class="k-sign" x="${sx}" y="${sy}" text-anchor="middle" dominant-baseline="middle">${sign}</text>`;
+      const [x, y] = HOUSE_POS[h];
+      const items = byHouse[h];
+      // Crowded houses use two columns so names stay inside the small corner triangles.
+      const corner = h !== 0 && h !== 3 && h !== 6 && h !== 9;
+      const cols = items.length > (corner ? 2 : 3) ? 2 : 1;
+      const rowsN = Math.ceil(items.length / cols), lineH = 13, colW = 24;
+      const y0 = y - ((rowsN - 1) * lineH) / 2;
+      items.forEach((t, i) => {
+        const cx = cols === 1 ? x : x + ((i % 2) - 0.5) * colW;
+        const cy = y0 + Math.floor(i / cols) * lineH;
+        out += `<text class="k-planet" x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle">${t}</text>`;
+      });
+    }
+    out += `<text class="k-asc" x="150" y="${HOUSE_POS[0][1] - Math.max(byHouse[0].length, 1) * 7 - 12}" text-anchor="middle">${c.lagna ? "Lagna" : "Chandra Lagna"}</text>`;
+    svg.innerHTML = out;
+    $("chartKind").textContent = c.lagna ? "Lagna chart (D1), North Indian style" : "Moon chart (birth time unknown)";
+  }
+
+  const factRow = (label, value, sub) => `<div class="fact"><dt>${label}</dt><dd>${value}${sub ? `<span>${sub}</span>` : ""}</dd></div>`;
+  function renderFacts(c) {
+    const f = [];
+    f.push(factRow("Lagna (Ascendant)", c.lagna ? `${c.lagna.sign} · ${c.lagna.rashi}` : "Needs birth time", c.lagna ? `lord ${c.lagna.lord}` : ""));
+    f.push(factRow("Moon sign (Rashi)", `${c.moonSign.sign} · ${c.moonSign.rashi}`, `lord ${c.moonSign.lord}`));
+    f.push(factRow("Nakshatra", c.nakshatra.name, `pada ${c.nakshatra.pada}, lord ${c.nakshatra.lord}`));
+    f.push(factRow("Sun sign", `${c.sunSign.vedic} (Vedic)`, `${c.sunSign.western} in Western astrology`));
+    f.push(factRow("Current dasha", c.dasha.current ? `${c.dasha.current.lord}${c.dasha.antardasha ? " / " + c.dasha.antardasha.lord : ""}` : "—", c.dasha.antardasha ? `sub-period until ${fmtDate(c.dasha.antardasha.to)}` : ""));
+    f.push(factRow("Manglik", c.manglik.fromLagna === null ? (c.manglik.fromMoon ? "Yes, from Moon" : "No, from Moon") : (c.manglik.fromLagna ? "Yes" : "No"), c.manglik.fromLagna === null ? `Mars in house ${c.manglik.marsHouseFromMoon} from Moon` : `Mars in house ${c.manglik.marsHouseFromLagna}${c.manglik.fromMoon ? "; also from Moon" : ""}`));
+    f.push(factRow("Sade Sati", c.sadeSati.active ? `Active, ${c.sadeSati.phase}` : "Not active", `Saturn now in ${c.sadeSati.saturnNowIn}${c.sadeSati.dhaiya ? " · Dhaiya running" : ""}`));
+    f.push(factRow("Birth Panchang", c.panchang.tithi, `${c.panchang.vara}, ${c.panchang.yoga} yoga`));
+    $("facts").innerHTML = f.join("");
+
+    $("planetRows").innerHTML = c.planets.map((p) => `<tr><td>${p.planet}${p.retrograde ? ' <span class="tag">℞</span>' : ""}</td><td>${p.sign}</td><td class="num">${p.degree}</td><td>${p.house ?? "—"}</td><td>${p.nakshatra} ${p.pada}</td><td>${p.dignity ? `<span class="tag">${p.dignity}</span>` : ""}</td></tr>`).join("");
+    $("dashaList").innerHTML = c.dasha.sequence.map((d) => `<li${c.dasha.current && d.lord === c.dasha.current.lord && d.from === c.dasha.current.from ? ' class="now"' : ""}><b>${d.lord}</b><span>${fmtDate(d.from)} – ${fmtDate(d.to)}</span></li>`).join("");
+
+    // Next 7 days strip and upcoming changes
+    $("days").innerHTML = c.forecast.next7Days.map((d, i) => {
+      const dt = new Date(d.date + "T12:00:00Z");
+      const cls = d.chandrashtama ? "day careful" : d.favourable ? "day good" : "day mixed";
+      const word = d.chandrashtama ? "Go slow" : d.favourable ? "Favourable" : "Mixed";
+      return `<li class="${cls}"><span class="dname">${i === 0 ? "Today" : dt.toLocaleDateString("en-IN", { weekday: "short", timeZone: "UTC" })}</span><span class="ddate">${dt.toLocaleDateString("en-IN", { day: "numeric", month: "short", timeZone: "UTC" })}</span><span class="dword">${word}</span><span class="dmoon">Moon in ${d.moonSign}</span></li>`;
+    }).join("");
+    const changes = c.forecast.signChanges.slice(0, 6);
+    $("changes").innerHTML = changes.length ? changes.map((x) => `<li><span class="cdate">${fmtShort(x.date)}</span><span>${x.planet} moves into ${x.toSign}${x.houseFromLagna ? ` <em>(your house ${x.houseFromLagna})</em>` : ` <em>(house ${x.houseFromMoon} from Moon)</em>`}</span></li>`).join("") : "<li>No sign changes in the next 90 days.</li>";
+
+    const pl = c.input.place;
+    $("chartFor").textContent = `${c.name ? c.name + " · " : ""}${fmtDate(c.input.date)}${c.input.time ? ", " + c.input.time : ", time unknown"} · ${pl.label} · age ${c.age}`;
+    $("chartMeta").textContent = `${pl.lat.toFixed(2)}°, ${pl.lon.toFixed(2)}° · ${pl.tz} (UTC${fmtOffset(c.utcOffsetMinutes)}) · Ayanamsa ${c.ayanamsa.system} ${c.ayanamsa.value}`;
+    document.querySelectorAll(".example-note").forEach((n) => (n.hidden = !isExample));
+  }
+  const fmtDate = (iso) => new Date(iso + "T12:00:00Z").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+  const fmtShort = (iso) => new Date(iso + "T12:00:00Z").toLocaleDateString("en-IN", { day: "numeric", month: "short", timeZone: "UTC" });
+  const fmtOffset = (m) => `${m < 0 ? "−" : "+"}${String(Math.floor(Math.abs(m) / 60)).padStart(2, "0")}:${String(Math.abs(m) % 60).padStart(2, "0")}`;
+
+  // ---------- AI ----------
+  const LANG = {
+    en: { label: "English", voiceLangs: ["en-IN", "en-GB", "en-US", "en"], write: "Write in simple, warm English." },
+    hinglish: { label: "Hinglish", voiceLangs: ["en-IN", "hi-IN", "en"], write: "Write in friendly Hinglish (Hindi words in Latin script mixed with English), the way people talk in India." },
+    hi: { label: "हिन्दी", voiceLangs: ["hi-IN", "hi"], write: "Write in simple Hindi using Devanagari script." },
+  };
+  function rules() {
+    const lang = LANG[$("lang").value] || LANG.en;
+    return `You are Tara, the voice of "Astro AI": a warm, caring female Vedic astrologer (Jyotish) who also knows Western astrology and numerology. You are talking to the person whose chart is below. Everything you write is READ ALOUD by a voice, so write exactly the way a kind woman speaks: natural sentences, no lists of symbols.
+
+Chart and forecast data (computed precisely: Lahiri ayanamsa, whole-sign houses from the Lagna, Vimshottari dasha; "today" is ${chart.today}; "age" is their current age; "forecast.transitsNow" is where the planets are today with the house they occupy from the natal Moon and Lagna; "forecast.next7Days" is the Moon's daily transit with Tarabala and Chandrashtama; "forecast.signChanges" lists planets changing sign in the next 90 days; "dasha.upcomingAntardashas" lists the coming sub-periods):
+${JSON.stringify(chart)}
+
+Rules:
+- People come to you mostly to know their FUTURE. Lead with what is coming, with real dates from the data ("from 31 October...", "this Saturday..."), then explain why in one short phrase ("because Jupiter enters your fifth house").
+- Use ONLY the placements, transits and dates in the data. Never invent a planet position, house, dasha or date.
+- If timeKnown is false there are no houses from the Lagna: use houses from the Moon, and say once, briefly, that an exact birth time would sharpen the reading.
+- Default to a SHORT spoken answer: 4 to 8 sentences, no headings, no bullet lists. Give a DETAILED answer only when asked for detail, a full reading or "explain more"; then use short sections with "## " headings and "- " bullets, under 450 words.
+- Never read out degrees, minutes, symbols or JSON field names. Say dates the natural way ("the eighteenth of October" or "18 October").
+- Be balanced and encouraging: tendencies and timings, never certain fate. Never predict death, serious illness, accidents or divorce. For health, money or legal decisions, gently suggest also asking a professional. Offer simple traditional remedies only when asked or clearly helpful.
+- If asked something unrelated to astrology, answer briefly and kindly, then bring it back to their chart.
+- ${lang.write}
+- Call the person by name if a name is given. No emojis.`;
+  }
+  const OPENING = (name) => `Please start my reading with my future${name ? " (my name is " + name + ")" : ""}. In about 150 to 200 spoken words:
+1) greet me warmly and say my age and which dasha period of life I am in now, in one or two sentences;
+2) the next few days: which days look good and which day to go slow, with dates;
+3) the coming weeks: the most important planet changes with dates and what they mean for me;
+4) the next months and the next few years: what this dasha and the next sub-period bring for career, money and relationships, with dates;
+5) end with one short question inviting me to ask about career, marriage, money or health.
+Write it as one flowing spoken answer, no headings or lists.`;
+
+  async function ask(question, opts = {}) {
+    if (!chart) return;
+    if (!sample) { addMsg("ai", "I can't reach the AI in this view. Open this page on claude.ai while you're signed in, and I'll read your chart aloud."); return; }
+    stopAll();
+    if (!opts.hidden) addMsg("user", question);
+    turns.push({ role: "user", content: question });
+    const keep = turns.slice(-12);
+    const bubble = addMsg("ai", "", true);
+    setBusy(true);
+    aiCtl = new AbortController();
+    const speaker = makeStreamSpeaker();
+    try {
+      const { text, truncated } = await sample([{ role: "user", content: rules() }, ...keep], {
+        cache: false, signal: aiCtl.signal, modelTier: "default",
+        onText: ({ text }) => { renderMd(bubble, text); bubble.classList.remove("thinking"); speaker.feed(text); scrollChat(); },
+      });
+      renderMd(bubble, text);
+      speaker.finish(text);
+      turns.push({ role: "assistant", content: text });
+      if (truncated) note(bubble, "The answer was cut short. Ask about one topic at a time.");
+    } catch (e) {
+      turns.pop();
+      bubble.classList.remove("thinking");
+      if (e && e.text) { renderMd(bubble, e.text); turns.push({ role: "user", content: question }, { role: "assistant", content: e.text }); }
+      else if (!e || e.code !== "cancelled") bubble.remove();
+      if (e && e.code !== "cancelled") addMsg("sys", errorCopy(e.code));
+      if (e && (e.code === "not_granted" || e.code === "sampling_disabled")) { sample = null; aiState(); }
+    } finally {
+      setBusy(false); aiCtl = null;
+    }
+  }
+  function errorCopy(code) {
+    switch (code) {
+      case "not_granted": return "You chose not to let this page use Claude, so readings are off. Reload the page to be asked again.";
+      case "sampling_disabled": return "Claude is not available for this account.";
+      case "rate_limited": return "Too many questions in a short time. Wait a minute, then ask again.";
+      case "session_expired": return "Your claude.ai session ended. Sign in again, then ask.";
+      case "refused": return "Tara can't answer that one. Try asking it a different way.";
+      default: return "Something went wrong reaching the AI. Ask again in a moment.";
+    }
+  }
+
+  // ---------- chat UI ----------
+  function addMsg(who, text, isThinking) {
+    const el = document.createElement("div");
+    el.className = `msg ${who}${isThinking ? " thinking" : ""}`;
+    if (isThinking) el.innerHTML = '<span class="dots" aria-label="Tara is thinking"><i></i><i></i><i></i></span>';
+    else if (who === "ai") renderMd(el, text); else el.textContent = text;
+    $("chat").append(el); scrollChat(); return el;
+  }
+  const note = (bubble, t) => { const n = document.createElement("p"); n.className = "note"; n.textContent = t; bubble.append(n); };
+  const scrollChat = () => { const c = $("chat"); c.scrollTop = c.scrollHeight; };
+  const esc = (s) => s.replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+  function renderMd(el, md) {
+    const lines = esc(md).split("\n"); let html = "", inList = false;
+    for (const raw of lines) {
+      const line = raw.replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");
+      if (/^#{1,4}\s/.test(line)) { if (inList) { html += "</ul>"; inList = false; } html += `<h4>${line.replace(/^#+\s/, "")}</h4>`; }
+      else if (/^\s*[-*•]\s/.test(line)) { if (!inList) { html += "<ul>"; inList = true; } html += `<li>${line.replace(/^\s*[-*•]\s/, "")}</li>`; }
+      else if (line.trim() === "") { if (inList) { html += "</ul>"; inList = false; } }
+      else { if (inList) { html += "</ul>"; inList = false; } html += `<p>${line}</p>`; }
+    }
+    if (inList) html += "</ul>";
+    el.innerHTML = html;
+  }
+  function setBusy(b) {
+    thinking = b;
+    $("send").disabled = b || !sample;
+    document.querySelectorAll(".chip").forEach((x) => (x.disabled = b || !sample));
+    $("stopAi").hidden = !b;
+    voiceUi();
+  }
+  function aiState() { $("aiOff").hidden = !!sample; setBusy(false); }
+
+  // ---------- voice output: the most natural female voice the browser offers ----------
+  const synth = window.speechSynthesis || null;
+  let voices = [], queue = [], speaking = false, paused = false;
+  const FEMALE = /(neerja|swara|aarti|ananya|kavya|aditi|raveena|heera|kalpana|veena|lekha|isha|aria|jenny|sonia|libby|maisie|natasha|clara|emma|ava|michelle|ana|sara|zira|hazel|susan|samantha|karen|moira|tessa|fiona|victoria|allison|serena|kate|female|woman|google uk english female|google us english|google हिन्दी)/i;
+  const MALE = /(ravi|hemant|prabhat|madhur|rishi|aarav|kunal|guy|ryan|thomas|david|mark|george|daniel|alex|fred|aaron|arthur|oliver|william|james|eric|christopher|roger|brian|andrew|\bmale\b|google uk english male)/i;
+  const NATURAL = /(natural|neural|online|premium|enhanced|wavenet)/i;
+  function scoreVoice(v, langs) {
+    let s = 0;
+    const lang = (v.lang || "").toLowerCase().replace("_", "-");
+    const li = langs.findIndex((l) => lang.startsWith(l.toLowerCase()));
+    if (li === -1) return -1;
+    s += 40 - li * 10;                       // preferred language/accent first
+    if (FEMALE.test(v.name)) s += 60;        // female voice
+    if (MALE.test(v.name)) s -= 100;         // never pick a known male voice when a female one exists
+    if (NATURAL.test(v.name)) s += 50;       // neural "natural" voices sound human
+    if (/google/i.test(v.name)) s += 15;     // Google voices beat the old OS voices
+    if (v.localService === false) s += 5;
+    return s;
+  }
+  function rankedVoices() {
+    const langs = (LANG[$("lang").value] || LANG.en).voiceLangs;
+    return voices.map((v) => ({ v, s: scoreVoice(v, langs) })).filter((x) => x.s >= 0).sort((a, b) => b.s - a.s);
+  }
+  function pickVoice() {
+    const chosen = $("voice").value;
+    if (chosen) { const v = voices.find((x) => x.name === chosen); if (v) return v; }
+    const best = rankedVoices()[0];
+    return best ? best.v : null;
+  }
+  function fillVoices() {
+    if (!synth) return;
+    voices = synth.getVoices();
+    const sel = $("voice"), keep = sel.value;
+    const list = rankedVoices().filter((x) => !MALE.test(x.v.name));
+    sel.innerHTML = '<option value="">Best female voice</option>' + list.map(({ v }) => `<option value="${esc(v.name)}">${esc(v.name.replace(/^Microsoft\s+/, "").replace(/\s*-\s*.*$/, ""))} · ${esc(v.lang)}${NATURAL.test(v.name) ? " · natural" : ""}</option>`).join("");
+    sel.value = keep;
+    const v = pickVoice();
+    $("voiceName").textContent = v ? `Voice: ${v.name.replace(/^Microsoft\s+/, "")}` : "";
+    $("voiceTip").hidden = !!(v && (NATURAL.test(v.name) || /google/i.test(v.name)));
+  }
+  // Speak in natural phrases: whole sentences grouped up to ~280 characters, split only at pauses.
+  const speechText = (md) => md
+    .replace(/^#+\s*/gm, "").replace(/^\s*[-*•]\s+/gm, "").replace(/[*_`>#]/g, "")
+    .replace(/℞/g, " retrograde").replace(/\b(\d+)°\s*\d*'?\s*\d*"?/g, "$1 degrees")
+    .replace(/\s+/g, " ").trim();
+  function chunk(text) {
+    const sentences = text.match(/[^.!?।]+[.!?।]+["')\]]*\s*|[^.!?।]+$/g) || [];
+    const out = []; let cur = "";
+    for (let s of sentences) {
+      s = s.trim(); if (!s) continue;
+      while (s.length > 280) { const cut = Math.max(s.lastIndexOf(", ", 280), s.lastIndexOf("; ", 280), s.lastIndexOf(" ", 280)); out.push(s.slice(0, cut + 1).trim()); s = s.slice(cut + 1).trim(); }
+      if ((cur + " " + s).length > 280 && cur) { out.push(cur); cur = s; } else cur = cur ? cur + " " + s : s;
+    }
+    if (cur) out.push(cur);
+    return out;
+  }
+  function enqueue(text) {
+    if (!synth || !$("autoSpeak").checked) return;
+    const t = speechText(text);
+    if (t) { queue.push(...chunk(t)); pump(); }
+  }
+  function pump() {
+    if (!synth || speaking || paused || !queue.length) { voiceUi(); return; }
+    const u = new SpeechSynthesisUtterance(queue.shift());
+    const v = pickVoice();
+    if (v) { u.voice = v; u.lang = v.lang; } else u.lang = (LANG[$("lang").value] || LANG.en).voiceLangs[0];
+    u.rate = +$("rate").value;
+    u.pitch = v && !FEMALE.test(v.name) && !NATURAL.test(v.name) ? 1.12 : 1; // lift an unknown voice slightly toward a female tone
+    u.onend = u.onerror = () => { speaking = false; pump(); };
+    speaking = true; synth.speak(u); voiceUi();
+  }
+  function makeStreamSpeaker() {
+    let spokenUpTo = 0;
+    return {
+      feed(text) { // speak finished sentences as soon as a natural phrase has arrived
+        const ends = [". ", "! ", "? ", "। ", "\n"].map((p) => text.lastIndexOf(p));
+        const lastEnd = Math.max(...ends);
+        const ready = lastEnd + 1 - spokenUpTo;
+        if (ready >= 160 || (speaking === false && queue.length === 0 && ready >= 70)) {
+          enqueue(text.slice(spokenUpTo, lastEnd + 1)); spokenUpTo = lastEnd + 1;
+        }
+      },
+      finish(text) { if (text.length > spokenUpTo) enqueue(text.slice(spokenUpTo)); spokenUpTo = text.length; },
+    };
+  }
+  function pauseVoice() { if (synth && speaking) { synth.pause(); paused = true; voiceUi(); } }
+  function resumeVoice() { if (synth) { paused = false; synth.resume(); if (!synth.speaking) { speaking = false; pump(); } voiceUi(); } }
+  function stopVoice() { queue = []; paused = false; speaking = false; if (synth) synth.cancel(); voiceUi(); }
+  function stopAll() { if (aiCtl) aiCtl.abort(); stopVoice(); }
+  function voiceUi() {
+    const active = speaking || queue.length > 0;
+    $("pause").disabled = !active || paused;
+    $("resume").disabled = !paused;
+    $("stop").disabled = !active && !paused && !thinking;
+    const state = !synth ? "Voice not supported in this browser" : paused ? "Paused" : active ? "Speaking…" : thinking ? "Thinking…" : "Ready to talk";
+    $("voiceState").textContent = state;
+    $("orb").dataset.state = paused ? "paused" : active ? "speaking" : thinking ? "thinking" : "idle";
+  }
+
+  // ---------- voice input (only where the browser allows the microphone) ----------
+  function setupMic() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const btn = $("mic");
+    if (!SR) { btn.hidden = true; return; }
+    let rec = null;
+    btn.onclick = () => {
+      if (rec) { rec.stop(); return; }
+      stopVoice();
+      rec = new SR(); rec.lang = $("lang").value === "hi" ? "hi-IN" : "en-IN"; rec.interimResults = true;
+      btn.classList.add("live"); btn.setAttribute("aria-pressed", "true"); $("orb").dataset.state = "listening"; $("voiceState").textContent = "Listening…";
+      rec.onresult = (ev) => { $("q").value = Array.from(ev.results).map((r) => r[0].transcript).join(" "); };
+      rec.onerror = (ev) => { if (ev.error === "not-allowed" || ev.error === "service-not-allowed") { btn.hidden = true; addMsg("sys", "The microphone isn't available on this page, so please type your question."); } };
+      rec.onend = () => { btn.classList.remove("live"); btn.setAttribute("aria-pressed", "false"); voiceUi(); const v = $("q").value.trim(); rec = null; if (v && sample) { $("q").value = ""; ask(v); } };
+      try { rec.start(); } catch { btn.hidden = true; rec = null; voiceUi(); }
+    };
+  }
+
+  // ---------- form ----------
+  async function makeChart(ev) {
+    ev.preventDefault();
+    const name = $("name").value.trim(), date = $("dob").value, time = $("tob").value;
+    const timeKnown = !$("noTime").checked && !!time;
+    const placeText = $("place").value.trim();
+    $("formMsg").textContent = "";
+    if (!date) { $("formMsg").textContent = "Enter the date of birth."; $("dob").focus(); return; }
+    if (!$("noTime").checked && !time) { $("formMsg").textContent = "Enter the birth time, or tick “I don't know my birth time”."; $("tob").focus(); return; }
+    if (!placeText) { $("formMsg").textContent = "Enter the place of birth."; $("place").focus(); return; }
+    if (synth) { synth.cancel(); synth.speak(new SpeechSynthesisUtterance("")); } // unlock speech on this click
+    let place = findCity(placeText);
+    if (!place) {
+      $("make").disabled = true; $("formMsg").textContent = sample ? `Finding “${placeText}”…` : "";
+      try { place = await lookupPlaceWithAI(placeText); } catch { place = null; }
+      $("make").disabled = false;
+      if (!place) { $("formMsg").textContent = sample ? `Couldn't find “${placeText}”. Try the nearest big city.` : `“${placeText}” isn't in the built-in list. Pick the nearest city from the suggestions.`; return; }
+      $("formMsg").textContent = `Using ${place.label} (${place.lat.toFixed(2)}°, ${place.lon.toFixed(2)}°, ${place.tz}).`;
+    }
+    chart = AstroCore.buildChart({ name, date, time, timeKnown, place });
+    isExample = false; turns = [];
+    store.set("astro-ai-birth", { name, date, time, noTime: $("noTime").checked, place: placeText });
+    drawChart(chart); renderFacts(chart);
+    $("chat").innerHTML = "";
+    addMsg("sys", `Chart ready for ${name || "you"}, age ${chart.age}. Tara is looking at your future…`);
+    if (sample) ask(OPENING(name), { hidden: true });
+    else addMsg("ai", "Your chart is ready below. To hear Tara's reading, open this page on claude.ai while you're signed in.");
+    $("assistant").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+  }
+
+  function init() {
+    fillCityList();
+    const saved = store.get("astro-ai-birth");
+    if (saved) { $("name").value = saved.name || ""; $("dob").value = saved.date || ""; $("tob").value = saved.time || ""; $("noTime").checked = !!saved.noTime; $("place").value = saved.place || ""; }
+    $("tob").disabled = $("noTime").checked;
+    $("noTime").onchange = () => { $("tob").disabled = $("noTime").checked; };
+    $("birthForm").addEventListener("submit", makeChart);
+    $("chatForm").addEventListener("submit", (e) => { e.preventDefault(); const v = $("q").value.trim(); if (!v) return; $("q").value = ""; if (isExample) { addMsg("sys", "Fill in your birth details above first, then ask."); return; } ask(v); });
+    document.querySelectorAll(".chip").forEach((b) => b.addEventListener("click", () => { if (isExample) { addMsg("sys", "Fill in your birth details above first, then ask."); return; } ask(b.dataset.q); }));
+    $("pause").onclick = pauseVoice; $("resume").onclick = resumeVoice; $("stop").onclick = stopAll;
+    $("stopAi").onclick = stopAll;
+    $("rate").oninput = () => { $("rateVal").textContent = (+$("rate").value).toFixed(2).replace(/0$/, "") + "×"; };
+    $("lang").onchange = () => { $("voice").value = ""; fillVoices(); };
+    $("voice").onchange = fillVoices;
+    $("autoSpeak").onchange = () => { if (!$("autoSpeak").checked) stopVoice(); };
+    if (synth) { fillVoices(); synth.onvoiceschanged = fillVoices; } else { $("voiceControls").classList.add("novoice"); }
+    if (matchMedia("(min-width: 861px)").matches) $("vset").open = true; // phones: keep the conversation close to Tara
+    setupMic();
+    voiceUi();
+
+    // Example chart so the page shows what it does before you enter your details.
+    chart = AstroCore.buildChart({ name: "Example", date: "1990-08-15", time: "06:30", timeKnown: true, place: { label: "New Delhi, India", lat: 28.6139, lon: 77.209, tz: "Asia/Kolkata" } });
+    drawChart(chart); renderFacts(chart);
+    addMsg("ai", "Namaste, I'm Tara. Tell me your name, date, time and place of birth above, and I'll tell you what your stars say about the days, months and years ahead. You can pause or stop me any time.");
+
+    aiState();
+    if (window.claude && typeof window.claude.use === "function") {
+      window.claude.use("sample").then((s) => { sample = s; aiState(); }).catch(() => { sample = null; aiState(); });
+    }
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init); else init();
+})();
+
+</script>
